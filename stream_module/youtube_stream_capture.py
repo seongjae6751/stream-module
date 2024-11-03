@@ -43,9 +43,3 @@ def capture_stream(youtube_url, capture_interval):
         # 스트림 해제
         cap.release()
         cv2.destroyAllWindows()
-
-
-# 예제 실행: 유튜브 스트림 URL과 캡처 주기(초)를 전달
-youtube_url = 'https://www.youtube.com/live/FIhE6Yp3t-E?si=OYnmsM3e4oBAmQ5x'  # 실제 유튜브 스트림 URL로 변경
-capture_interval = 5  # 5초마다 캡처
-capture_stream(youtube_url, capture_interval)
