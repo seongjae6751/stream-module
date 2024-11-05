@@ -4,21 +4,22 @@ import cv2
 from datetime import timedelta, datetime
 import os
 
-def extract_subtitle(video_path, ffmpeg_path, subtitle_output=None):
-    """FFmpeg를 사용하여 자막을 추출하고 기존 파일을 덮어씁니다."""
-    video_name = os.path.splitext(os.path.basename(video_path))[0]  # 파일명만 추출
-    subtitle_output = subtitle_output or f"{video_name}_subtitle.srt"  # 자막 파일 이름 설정
+def extract_subtitle(video_path, ffmpeg_path, output_folder, subtitle_output=None):
+    """FFmpeg를 사용하여 자막을 추출하고 지정된 폴더에 저장"""
+    video_name = os.path.splitext(os.path.basename(video_path))[0]
+    subtitle_output = subtitle_output or f"{video_name}_subtitle.srt"
+    subtitle_path = os.path.join(output_folder, subtitle_output)
 
     command = [
-        ffmpeg_path,  # 사용자가 지정한 ffmpeg 경로
-        "-y",  # 기존 파일 덮어쓰기
+        ffmpeg_path,
+        "-y",
         "-fflags", "+genpts",
         "-i", video_path,
         "-map", "0:s:0",
-        subtitle_output
+        subtitle_path
     ]
     subprocess.run(command, check=True)
-    return subtitle_output
+    return subtitle_path
 
 def parse_gps_from_subtitle(subtitle_file, target_time):
     """자막 파일에서 특정 시간에 해당하는 GPS 정보를 추출하고 `n/a` 처리합니다."""
@@ -72,8 +73,8 @@ def parse_gps_from_subtitle(subtitle_file, target_time):
 
     return latitude, longitude
 
-def capture_frame(video_path, target_time, output_image="capture.jpg"):
-    """OpenCV를 사용하여 특정 시간의 프레임을 캡처합니다."""
+def capture_frame(video_path, target_time, output_folder, output_image=None):
+    """OpenCV를 사용하여 특정 시간의 프레임을 캡처하고 지정된 폴더에 저장"""
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
@@ -84,20 +85,27 @@ def capture_frame(video_path, target_time, output_image="capture.jpg"):
     frame_number = int(fps * target_time)
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
 
+    video_name = os.path.splitext(os.path.basename(video_path))[0]
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_image = output_image or f"{video_name}_capture_{target_time}s_{timestamp}.jpg"
+    output_image_path = os.path.join(output_folder, output_image)
+
     ret, frame = cap.read()
     if ret:
-        cv2.imwrite(output_image, frame)
-        print(f"{output_image}에 프레임 저장 완료")
+        cv2.imwrite(output_image_path, frame)
+        print(f"{output_image_path}에 프레임 저장 완료")
     else:
         print("프레임을 읽을 수 없습니다.")
 
     cap.release()
-    return output_image
+    return output_image_path
 
-def process_drone_video(video_path, ffmpeg_path, target_time):
+def process_drone_video(video_path, ffmpeg_path, target_time, output_folder):
     """전체 프로세스: 자막 추출, GPS 정보 파싱, 프레임 캡처"""
-    subtitle_file = extract_subtitle(video_path, ffmpeg_path)
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 
+    subtitle_file = extract_subtitle(video_path, ffmpeg_path, output_folder)
     latitude, longitude = parse_gps_from_subtitle(subtitle_file, target_time)
 
     if latitude is not None and longitude is not None:
@@ -105,17 +113,4 @@ def process_drone_video(video_path, ffmpeg_path, target_time):
     else:
         print("GPS 정보를 찾을 수 없습니다.")
 
-    # 파일 이름 구분자 설정
-    video_name = os.path.splitext(os.path.basename(video_path))[0]  # 파일명만 추출
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_image = f"{video_name}_capture_{target_time}s_{timestamp}.jpg"
-
-    capture_frame(video_path, target_time, output_image)
-
-
-# 예제 실행
-video_path = "C:\\Users\\seongjae\\Downloads\\Dji drone 비디오\\dji_fly_20241101_031840_7_1730398841244_video.mp4"  # 실제 파일 경로로 변경
-ffmpeg_path = "C:\\Users\\seongjae\\Downloads\\ffmpeg-2024-10-31-git-87068b9600-full_build\\bin\\ffmpeg.exe"  # 실제 FFmpeg 경로로 변경
-target_time = 55  # 초 단위로 원하는 시간을 입력
-
-process_drone_video(video_path, ffmpeg_path, target_time)
+    capture_frame(video_path, target_time, output_folder)
