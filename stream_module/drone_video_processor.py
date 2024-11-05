@@ -4,11 +4,14 @@ import cv2
 from datetime import timedelta, datetime
 import os
 
-def extract_subtitle(video_path, ffmpeg_path, subtitle_output="subtitle.srt"):
-    """FFmpeg를 사용하여 자막을 추출하고 기존 파일을 덮어씀"""
+def extract_subtitle(video_path, ffmpeg_path, subtitle_output=None):
+    """FFmpeg를 사용하여 자막을 추출하고 기존 파일을 덮어씁니다."""
+    video_name = os.path.splitext(os.path.basename(video_path))[0]  # 파일명만 추출
+    subtitle_output = subtitle_output or f"{video_name}_subtitle.srt"  # 자막 파일 이름 설정
+
     command = [
         ffmpeg_path,  # 사용자가 지정한 ffmpeg 경로
-        "-y",  # 기존 파일 덮어씀
+        "-y",  # 기존 파일 덮어쓰기
         "-fflags", "+genpts",
         "-i", video_path,
         "-map", "0:s:0",
@@ -18,7 +21,7 @@ def extract_subtitle(video_path, ffmpeg_path, subtitle_output="subtitle.srt"):
     return subtitle_output
 
 def parse_gps_from_subtitle(subtitle_file, target_time):
-    """자막 파일에서 특정 시간에 해당하는 GPS 정보를 추출하고 `n/a` 처리"""
+    """자막 파일에서 특정 시간에 해당하는 GPS 정보를 추출하고 `n/a` 처리합니다."""
     with open(subtitle_file, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
@@ -70,7 +73,7 @@ def parse_gps_from_subtitle(subtitle_file, target_time):
     return latitude, longitude
 
 def capture_frame(video_path, target_time, output_image="capture.jpg"):
-    """OpenCV를 사용하여 특정 시간의 프레임을 캡처"""
+    """OpenCV를 사용하여 특정 시간의 프레임을 캡처합니다."""
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
@@ -111,9 +114,8 @@ def process_drone_video(video_path, ffmpeg_path, target_time):
 
 
 # 예제 실행
-# video_path = "C:\\Users\\seongjae\\Downloads\\dji_fly_20241101_031516_6_1730398858018_video\\dji_fly_20241101_031516_6_1730398858018_video.mp4"  # 실제 파일 경로로 변경
-video_path = "C:\\Users\seongjae\Downloads\Dji drone 비디오\dji_fly_20241101_031840_7_1730398841244_video.mp4"
+video_path = "C:\\Users\\seongjae\\Downloads\\Dji drone 비디오\\dji_fly_20241101_031840_7_1730398841244_video.mp4"  # 실제 파일 경로로 변경
 ffmpeg_path = "C:\\Users\\seongjae\\Downloads\\ffmpeg-2024-10-31-git-87068b9600-full_build\\bin\\ffmpeg.exe"  # 실제 FFmpeg 경로로 변경
-target_time = 44  # 초 단위로 원하는 시간을 입력
+target_time = 55  # 초 단위로 원하는 시간을 입력
 
 process_drone_video(video_path, ffmpeg_path, target_time)
